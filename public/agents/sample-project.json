@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "template": {
+    "width": 300,
+    "height": 420,
+    "elements": [
+      {
+        "id": "title",
+        "type": "text",
+        "x": 20,
+        "y": 24,
+        "width": 260,
+        "height": 44,
+        "fontSize": 26,
+        "fontFamily": "Arial",
+        "color": "#172033",
+        "align": "center",
+        "bind": "name"
+      },
+      {
+        "id": "art",
+        "type": "image",
+        "x": 24,
+        "y": 88,
+        "width": 252,
+        "height": 210,
+        "bind": "image"
+      },
+      {
+        "id": "summary",
+        "type": "text",
+        "x": 24,
+        "y": 318,
+        "width": 252,
+        "height": 70,
+        "fontSize": 16,
+        "fontFamily": "Arial",
+        "color": "#172033",
+        "align": "left",
+        "bind": "description"
+      }
+    ],
+    "customFonts": []
+  },
+  "cards": [
+    {
+      "name": "Sunstone Golem",
+      "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 252 210'%3E%3Crect width='252' height='210' fill='%23f4c95d'/%3E%3Ccircle cx='126' cy='94' r='52' fill='%23c16b3f'/%3E%3Cpath d='M79 153h94l-20 35H99z' fill='%23764b36'/%3E%3C/svg%3E",
+      "description": "A guardian carved from warm desert stone."
+    },
+    {
+      "name": "Mossbound Sage",
+      "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 252 210'%3E%3Crect width='252' height='210' fill='%23b8d8a8'/%3E%3Cpath d='M126 30 180 110 126 183 72 110z' fill='%234f7955'/%3E%3Ccircle cx='126' cy='103' r='27' fill='%23e9d7a1'/%3E%3C/svg%3E",
+      "description": "A quiet guide who knows every forest path."
+    }
+  ],
+  "processRules": []
+}

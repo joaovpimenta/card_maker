@@ -4,8 +4,15 @@ import type { CardTemplate } from "../models/Template"
 import Konva from "konva"
 import { resolveText, resolveImage } from "./jsonBinding"
 import type { CardElement } from "../models/Element"
+import { ensureTemplateFonts } from "./googleFonts"
 
 const STATIC_IMAGE_PROXY = import.meta.env.VITE_STATIC_IMAGE_PROXY
+
+function boundDimension(cardData: Record<string, string>, key: string | undefined, fallback: number) {
+    if (!key) return fallback
+    const bound = Number.parseInt(cardData[key] ?? "", 10)
+    return Number.isFinite(bound) && bound > 0 ? bound : fallback
+}
 
 export async function renderCardToDataURL(
     template: CardTemplate,
@@ -20,22 +27,14 @@ export async function renderCardToDataURL(
     const layer = new Konva.Layer()
     stage.add(layer)
 
-    for (const el of template.elements.sort((a: CardElement, b: CardElement) => (a.zIndex ?? 0) - (b.zIndex ?? 0))) {
+    try {
+    await ensureTemplateFonts(template)
+    const fonts = [...new Set(template.elements.filter(el => el.type === "text" || el.type === "staticText").map(el => `${el.fontSize}px "${el.fontFamily}"`))]
+    await Promise.all(fonts.map(font => document.fonts.load(font)))
+    for (const el of [...template.elements].sort((a: CardElement, b: CardElement) => (a.zIndex ?? 0) - (b.zIndex ?? 0))) {
         if (el.type === "text" || el.type === "staticText") {
-            let width = el.maxWidth ?? el.width;
-            if(el.width_bind){
-                const boundWidth = parseInt(cardData[el.width_bind] as string);
-                if(!isNaN(boundWidth)){
-                    width = boundWidth;
-                }
-            }
-            let height = el.maxHeight ?? el.height;
-            if(el.height_bind){
-                const boundHeight = parseInt(cardData[el.height_bind] as string);
-                if(!isNaN(boundHeight)){
-                    height = boundHeight;
-                }
-            }
+            const width = boundDimension(cardData, el.width_bind, el.maxWidth ?? el.width)
+            const height = boundDimension(cardData, el.height_bind, el.maxHeight ?? el.height)
 
             layer.add(
                 new Konva.Text({
@@ -58,31 +57,21 @@ export async function renderCardToDataURL(
         if (el.type === "image" || el.type === "staticImage") {
             const img = new Image()
             img.crossOrigin = "anonymous"
-            img.src = el.type === "staticImage"
+            let imageUrl = el.type === "staticImage"
                 ? el.src
                 : resolveImage({ ...el }, cardData)
             if(el.type === "image" && STATIC_IMAGE_PROXY)
-                img.src = STATIC_IMAGE_PROXY + encodeURIComponent(img.src)
+                imageUrl = STATIC_IMAGE_PROXY + encodeURIComponent(imageUrl)
+            img.src = imageUrl
 
-            await new Promise<void>((res, rej) => {
-                img.onload = () => res()
-                img.onerror = () => rej()
-            })
+            try {
+                await img.decode()
+            } catch {
+                throw new Error(`Não foi possível carregar a imagem do elemento ${el.id}.`)
+            }
 
-            let width =  el.width;
-            if(el.width_bind){
-                const boundWidth = parseInt(cardData[el.width_bind] as string);
-                if(!isNaN(boundWidth)){
-                    width = boundWidth;
-                }
-            }
-            let height = el.height;
-            if(el.height_bind){
-                const boundHeight = parseInt(cardData[el.height_bind] as string);
-                if(!isNaN(boundHeight)){
-                    height = boundHeight;
-                }
-            }
+            const width = boundDimension(cardData, el.width_bind, el.width)
+            const height = boundDimension(cardData, el.height_bind, el.height)
 
             const imgRatio = img.width / img.height
             const boxRatio = width / height
@@ -119,8 +108,14 @@ export async function renderCardToDataURL(
 
     layer.draw()
 
-    const dataURL = stage.toDataURL({ pixelRatio: 2 })
-    stage.destroy()
-
-    return dataURL
+    return stage.toDataURL({ pixelRatio: 2 })
+    } catch (error) {
+        if (error instanceof Error && error.message.toLowerCase().includes("taint")) {
+            throw new Error("Uma imagem não pôde ser exportada porque o servidor não permite acesso entre origens (CORS).", { cause: error })
+        }
+        throw error
+    } finally {
+        stage.destroy()
+    }
 }
+

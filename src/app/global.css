@@ -1,0 +1,10 @@
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; width: 100%; min-height: 100%; }
+body { font-family: system-ui, sans-serif; color: #233b55; }
+button, input, select, textarea { font: inherit; }
+button, a, summary, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 3px solid #789ae6; outline-offset: 2px; }
+input[type="file"] { display: block !important; position: absolute; width: 1px; height: 1px; opacity: 0; clip-path: inset(50%); overflow: hidden; }
+label:has(input[type="file"]:focus-visible) { outline: 3px solid #789ae6; outline-offset: 2px; }
+button:not(:disabled), summary { cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }

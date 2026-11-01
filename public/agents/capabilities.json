@@ -1,0 +1,65 @@
+{
+  "title": "Card Maker browser API capabilities",
+  "version": 1,
+  "transport": "browser-window",
+  "availability": "Available only in a browser page after the static Card Maker app loads. This catalog does not describe an MCP server or remote service.",
+  "api": {
+    "root": "window.cardMaker",
+    "ready": {
+      "type": "Promise<void>",
+      "meaning": "Resolves after editor persistence hydration. Await before reading or mutating project state."
+    },
+    "projectSchema": "project.schema.json",
+    "methods": {
+      "getProject": {
+        "input": "none",
+        "returns": "Project",
+        "notes": ["Returns version, template, cards, and processRules.", "Card values are normalized to strings; null becomes an empty string."]
+      },
+      "validateProject": {
+        "input": "Project object or JSON string",
+        "returns": {
+          "success": { "ok": true, "errors": [] },
+          "failure": { "ok": false, "errors": [{ "message": "string", "path": "optional dotted path" }] }
+        },
+        "notes": ["JSON parse failures are returned in errors."]
+      },
+      "execute": {
+        "input": { "$ref": "#/$defs/command" },
+        "returns": {
+          "success": { "ok": true, "data": { "$ref": "project.schema.json" }, "warnings": "optional string array" },
+          "failure": { "ok": false, "errors": [{ "message": "string", "path": "optional dotted path" }], "warnings": "optional string array" }
+        },
+        "notes": ["Returns a structured result for ordinary command errors; inspect ok before continuing."]
+      },
+      "exportCards": {
+        "input": {
+          "download": { "type": "boolean", "optional": true, "default": true },
+          "onProgress": { "type": "callback", "signature": "(current: number, total: number) => void", "optional": true }
+        },
+        "returns": { "filename": "string", "blob": "Blob", "count": "number" },
+        "limitations": ["Requires at least one template element.", "Rendering failures reject the promise.", "Remote images and fonts depend on browser network and cross-origin access."]
+      }
+    }
+  },
+  "$defs": {
+    "command": {
+      "oneOf": [
+        { "type": "object", "required": ["type"], "properties": { "type": { "const": "newProject" } } },
+        { "type": "object", "required": ["type", "project"], "properties": { "type": { "const": "importProject" }, "project": { "$ref": "project.schema.json" } } },
+        { "type": "object", "required": ["type", "element"], "properties": { "type": { "const": "addElement" }, "element": { "$ref": "project.schema.json#/$defs/element" } } },
+        { "type": "object", "required": ["type", "id", "updates"], "properties": { "type": { "const": "updateElement" }, "id": { "type": "string" }, "updates": { "type": "object", "description": "Partial element fields; id and type are immutable." } } },
+        { "type": "object", "required": ["type", "id"], "properties": { "type": { "const": "deleteElement" }, "id": { "type": "string" } } },
+        { "type": "object", "required": ["type", "cards"], "properties": { "type": { "const": "setDataset" }, "cards": { "type": "array", "items": { "type": "object", "additionalProperties": { "type": ["string", "number", "boolean", "null"] } } } } },
+        { "type": "object", "required": ["type", "template"], "properties": { "type": { "const": "setTemplate" }, "template": { "$ref": "project.schema.json#/properties/template" } } },
+        { "type": "object", "required": ["type", "processRules"], "properties": { "type": { "const": "setProcessRules" }, "processRules": { "$ref": "project.schema.json#/properties/processRules" } } },
+        { "type": "object", "required": ["type", "rule"], "properties": { "type": { "const": "addProcessRule" }, "rule": { "$ref": "project.schema.json#/properties/processRules/items" } } },
+        { "type": "object", "required": ["type", "index", "updates"], "properties": { "type": { "const": "updateProcessRule" }, "index": { "type": "integer", "minimum": 0 }, "updates": { "type": "object", "description": "Partial process rule fields." } } },
+        { "type": "object", "required": ["type", "index"], "properties": { "type": { "const": "removeProcessRule" }, "index": { "type": "integer", "minimum": 0 } } },
+        { "type": "object", "required": ["type", "width", "height"], "properties": { "type": { "const": "setCardSize" }, "width": { "type": "number", "exclusiveMinimum": 0 }, "height": { "type": "number", "exclusiveMinimum": 0 } } },
+        { "type": "object", "required": ["type"], "properties": { "type": { "const": "undo" } } },
+        { "type": "object", "required": ["type"], "properties": { "type": { "const": "redo" } } }
+      ]
+    }
+  }
+}

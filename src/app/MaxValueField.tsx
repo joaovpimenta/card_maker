@@ -23,8 +23,8 @@ export function BindField({
   fallbackNumber
 }: BindFieldProps) {
   return (
-    <label>
-      <span style={{ marginBottom: 4 }}>{label}</span>
+    <fieldset style={{ padding: 0, border: 0, margin: 0, minWidth: 0 }}>
+      <legend style={{ marginBottom: 4 }}>{label}</legend>
       <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
         <button
           type="button"
@@ -39,7 +39,7 @@ export function BindField({
           }}
           onClick={() => setTab('number')}
         >
-          Number
+          Número
         </button>
         <button
           type="button"
@@ -54,27 +54,31 @@ export function BindField({
           }}
           onClick={() => setTab('field')}
         >
-          Field
+          Campo dos dados
         </button>
       </div>
       {tab === 'number' ? (
         <input
+          aria-label={label}
           type="number"
+          min={1}
           value={numberValue ?? fallbackNumber ?? ''}
           onChange={e => onNumberChange(parseInt(e.target.value))}
           disabled={fieldValue !== undefined}
         />
       ) : (
         <select
+          aria-label={label}
           value={fieldValue || ''}
           onChange={e => onFieldChange(e.target.value || undefined)}
         >
-          <option value="">-- Select field --</option>
+          <option value="">Escolha um campo</option>
           {availableFields.map(f => (
             <option key={f} value={f}>{f}</option>
           ))}
         </select>
       )}
-    </label>
+    </fieldset>
   )
 }
+

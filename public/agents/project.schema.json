@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://joaovpimenta.github.io/card_maker/agents/project.schema.json",
+  "title": "Card Maker project",
+  "description": "Version 1 project JSON accepted by Card Maker import and browser automation APIs.",
+  "type": "object",
+  "required": ["version", "template", "cards", "processRules"],
+  "properties": {
+    "version": { "const": 1 },
+    "template": {
+      "type": "object",
+      "required": ["width", "height", "elements", "customFonts"],
+      "properties": {
+        "width": { "type": "number", "exclusiveMinimum": 0, "description": "Finite positive card width in editor canvas units." },
+        "height": { "type": "number", "exclusiveMinimum": 0, "description": "Finite positive card height in editor canvas units." },
+        "elements": { "type": "array", "items": { "$ref": "#/$defs/element" } },
+        "customFonts": { "type": "array", "items": { "type": "string" }, "description": "Font family names used by this template." }
+      }
+    },
+    "cards": {
+      "type": "array",
+      "description": "Input rows of string, number, boolean, or null values. Runtime parsing converts every value to a string and null to the empty string. Object keys named __proto__, constructor, or prototype are rejected.",
+      "items": {
+        "type": "object",
+        "propertyNames": { "not": { "enum": ["__proto__", "constructor", "prototype"] } },
+        "additionalProperties": { "type": ["string", "number", "boolean", "null"] }
+      }
+    },
+    "processRules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "comparator", "value", "new_key", "content"],
+        "properties": {
+          "key": { "type": "string", "not": { "enum": ["__proto__", "constructor", "prototype"] }, "description": "Source card field." },
+          "comparator": { "enum": ["=", "!=", "~", "!~", ">", "<", ">=", "<=", "null", "not null"] },
+          "value": { "type": "string", "description": "Comparison value; ignored by null/not null comparisons." },
+          "new_key": { "type": "string", "not": { "enum": ["__proto__", "constructor", "prototype"] }, "description": "Field set when the rule matches." },
+          "content": { "type": "string", "description": "Value assigned to new_key." }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "baseElement": {
+      "type": "object",
+      "required": ["id", "x", "y", "width", "height"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "description": "Must be unique among template elements." },
+        "x": { "type": "number", "description": "Finite x position." },
+        "y": { "type": "number", "description": "Finite y position." },
+        "width": { "type": "number", "exclusiveMinimum": 0 },
+        "height": { "type": "number", "exclusiveMinimum": 0 },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "zIndex": { "type": "number", "description": "Finite stacking order." },
+        "x_bind": { "type": "string", "description": "Optional card field controlling x position." },
+        "y_bind": { "type": "string", "description": "Optional card field controlling y position." },
+        "width_bind": { "type": "string", "description": "Optional card field controlling width." },
+        "height_bind": { "type": "string", "description": "Optional card field controlling height." }
+      }
+    },
+    "element": {
+      "oneOf": [
+        {
+          "allOf": [
+            { "$ref": "#/$defs/baseElement" },
+            { "type": "object", "required": ["type", "fontSize", "fontFamily", "color", "align"], "properties": {
+              "type": { "const": "text" }, "fontSize": { "type": "number", "exclusiveMinimum": 0 }, "fontFamily": { "type": "string" }, "color": { "type": "string" }, "align": { "enum": ["left", "center", "right"] }, "bind": { "type": "string" }, "staticText": { "type": "string" }, "maxWidth": { "type": "number", "exclusiveMinimum": 0 }, "maxHeight": { "type": "number", "exclusiveMinimum": 0 }
+            } }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/baseElement" },
+            { "type": "object", "required": ["type"], "properties": { "type": { "const": "image" }, "src": { "type": "string", "description": "Optional static image source URL or data URI." }, "bind": { "type": "string", "description": "Optional card field containing an image URL or data URI." } } }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/baseElement" },
+            { "type": "object", "required": ["type", "text", "fontSize", "fontFamily", "color", "align"], "properties": {
+              "type": { "const": "staticText" }, "text": { "type": "string" }, "fontSize": { "type": "number", "exclusiveMinimum": 0 }, "fontFamily": { "type": "string" }, "color": { "type": "string" }, "align": { "enum": ["left", "center", "right"] }, "maxWidth": { "type": "number", "exclusiveMinimum": 0 }, "maxHeight": { "type": "number", "exclusiveMinimum": 0 }
+            } }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/baseElement" },
+            { "type": "object", "required": ["type", "src"], "properties": { "type": { "const": "staticImage" }, "src": { "type": "string", "description": "Image source URL or data URI." } } }
+          ]
+        }
+      ]
+    }
+  }
+}

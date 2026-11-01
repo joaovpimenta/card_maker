@@ -79,3 +79,9 @@
   cursor: pointer;
   font-size: 14px;
 } 
+.toolbar { width: auto; min-height: 100%; box-sizing: border-box; border-color: #e3e7eb; border-radius: 12px; background: white; gap: 12px; }
+.toolbar button,.toolbar label { min-height: 44px; }
+.toolbar button { padding: 10px 12px; border-color: #d7dce2; color: #253247; font-weight: 550; }
+.toolbar label { justify-content: center; padding: 8px 10px; box-sizing: border-box; border: 1px solid #d7dce2; border-radius: 8px; color: #273449; }
+.toolbar button:focus-visible,.toolbar label:focus-within { outline: 2px solid #6685df; outline-offset: 2px; }
+.hint { margin: 0; font-size: 13px; line-height: 1.5; color: #596b7e; }
