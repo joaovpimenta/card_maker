@@ -26,6 +26,7 @@ export default function App() {
   const redo = useEditorStore(s => s.redo)
   const template = useEditorStore(s => s.template)
   const hydrationStatus = useEditorStore(s => s.hydrationStatus)
+  const currentCardIndex = Math.min(cardIndex, Math.max(sampleCards.length - 1, 0))
 
   useEffect(() => {
     let active = true
@@ -68,8 +69,8 @@ export default function App() {
       <main className={`${styles.canvasPane} ${panel === "canvas" ? styles.mobileVisible : ""}`}>
         {stage === "Dados" && <DatasetTable onContinue={() => setStage("Design")} />}
         {stage === "Design" && (showPreview ? <CardsPreviewGrid /> : <CanvasWrapper width={template.width} height={template.height}>
-          {sampleCards.length > 0 && <div className={styles.cardNav} aria-label="Navegação entre cartões"><button aria-label="Cartão anterior" onClick={() => setCardIndex(i => Math.max(i - 1, 0))} disabled={cardIndex === 0}>← Anterior</button><span>Cartão {Math.min(cardIndex + 1, sampleCards.length)} de {sampleCards.length}</span><button aria-label="Próximo cartão" onClick={() => setCardIndex(i => Math.min(i + 1, sampleCards.length - 1))} disabled={cardIndex >= sampleCards.length - 1}>Próximo →</button></div>}
-          {sampleCards.length || elements.length ? <CanvasStage cardIndex={sampleCards.length ? Math.min(cardIndex, sampleCards.length - 1) : 0} /> : <div className={styles.emptyCanvas}><div aria-hidden="true">✦</div><h2>Seu cartão começa aqui</h2><p>Adicione um texto ou imagem. Você pode importar dados na etapa Dados.</p><button onClick={() => setStage("Dados")}>Preparar dados</button></div>}
+          {sampleCards.length > 0 && <div className={styles.cardNav} aria-label="Navegação entre cartões"><button aria-label="Cartão anterior" onClick={() => setCardIndex(Math.max(currentCardIndex - 1, 0))} disabled={currentCardIndex === 0}>← Anterior</button><span>Cartão {currentCardIndex + 1} de {sampleCards.length}</span><button aria-label="Próximo cartão" onClick={() => setCardIndex(Math.min(currentCardIndex + 1, sampleCards.length - 1))} disabled={currentCardIndex >= sampleCards.length - 1}>Próximo →</button></div>}
+          {sampleCards.length || elements.length ? <CanvasStage cardIndex={currentCardIndex} /> : <div className={styles.emptyCanvas}><div aria-hidden="true">✦</div><h2>Seu cartão começa aqui</h2><p>Adicione um texto ou imagem. Você pode importar dados na etapa Dados.</p><button onClick={() => setStage("Dados")}>Preparar dados</button></div>}
         </CanvasWrapper>)}
         {stage === "Revisão" && <ReviewStage onAddData={() => setStage("Dados")} />}
         {stage === "Exportação" && <ExportPanel />}

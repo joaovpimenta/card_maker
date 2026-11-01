@@ -70,9 +70,11 @@ test("touch selection works, and zooming and panning preserve project coordinate
 })
 
 test("reports a failed image request during export", async ({ page }) => {
+  console.info("[DEBUG-ci-image] start")
   await page.setViewportSize({ width: 1280, height: 900 })
   await page.route("https://blocked.invalid/**", route => route.abort())
   await page.goto("./")
+  console.info("[DEBUG-ci-image] page loaded")
   const project = {
     version: 1,
     template: { width: 600, height: 825, customFonts: [], elements: [{ id: "remote", type: "image", x: 20, y: 20, width: 200, height: 200, src: "https://blocked.invalid/fail.png" }] },
@@ -80,12 +82,19 @@ test("reports a failed image request during export", async ({ page }) => {
     processRules: [],
   }
   await page.getByText("Projeto", { exact: true }).click()
+  console.info("[DEBUG-ci-image] project menu opened")
   await page.getByLabel("Abrir projeto ou template").setInputFiles({ name: "remote.cardmaker.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(project)) })
+  console.info("[DEBUG-ci-image] import input completed")
   await expect.poll(() => page.evaluate(() => window.cardMaker?.getProject().template.elements[0]?.id)).toBe("remote")
+  console.info("[DEBUG-ci-image] import applied")
   await page.getByRole("navigation", { name: "Etapas do projeto" }).getByRole("button", { name: /Design/ }).click()
+  console.info("[DEBUG-ci-image] design selected")
   await page.getByRole("navigation", { name: "Etapas do projeto" }).getByRole("button", { name: /Exportação/ }).click()
+  console.info("[DEBUG-ci-image] export selected")
   await page.getByRole("button", { name: "Baixar primeira carta" }).click()
+  console.info("[DEBUG-ci-image] export clicked")
   await expect(page.getByRole("alert")).toContainText(/não foi possível carregar a imagem|CORS/i)
+  console.info("[DEBUG-ci-image] error visible")
 })
 
 async function downloadProject(page: Page) {
