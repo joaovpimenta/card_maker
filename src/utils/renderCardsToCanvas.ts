@@ -64,10 +64,19 @@ export async function renderCardToDataURL(
                 imageUrl = STATIC_IMAGE_PROXY + encodeURIComponent(imageUrl)
             img.src = imageUrl
 
+            let imageTimeout: ReturnType<typeof setTimeout> | undefined
             try {
-                await img.decode()
+                await Promise.race([
+                    img.decode(),
+                    new Promise<never>((_, reject) => {
+                        imageTimeout = setTimeout(() => reject(new Error("A imagem demorou demais para carregar.")), 15000)
+                    }),
+                ])
             } catch {
-                throw new Error(`Não foi possível carregar a imagem do elemento ${el.id}.`)
+                img.src = ""
+                throw new Error(`Não foi possível carregar a imagem do elemento ${el.id}. Verifique a URL e a permissão de acesso (CORS).`)
+            } finally {
+                clearTimeout(imageTimeout)
             }
 
             const width = boundDimension(cardData, el.width_bind, el.width)

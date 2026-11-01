@@ -81,6 +81,7 @@ test("reports a failed image request during export", async ({ page }) => {
   }
   await page.getByText("Projeto", { exact: true }).click()
   await page.getByLabel("Abrir projeto ou template").setInputFiles({ name: "remote.cardmaker.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(project)) })
+  await expect.poll(() => page.evaluate(() => window.cardMaker?.getProject().template.elements[0]?.id)).toBe("remote")
   await page.getByRole("navigation", { name: "Etapas do projeto" }).getByRole("button", { name: /Design/ }).click()
   await page.getByRole("navigation", { name: "Etapas do projeto" }).getByRole("button", { name: /Exportação/ }).click()
   await page.getByRole("button", { name: "Baixar primeira carta" }).click()
@@ -96,3 +97,20 @@ async function downloadProject(page: Page) {
   await page.getByText("Projeto", { exact: true }).click()
   return project
 }
+
+test("stalled external images produce an actionable export error", async ({ page }) => {
+  await page.route("https://stalled.invalid/**", () => { /* Keep the image request pending. */ })
+  await page.goto("./")
+  await page.evaluate(async () => {
+    await window.cardMaker!.ready
+    await window.cardMaker!.execute({ type: "importProject", project: {
+      version: 1,
+      template: { width: 200, height: 300, customFonts: [], elements: [{ id: "slow", type: "staticImage", x: 10, y: 10, width: 100, height: 100, src: "https://stalled.invalid/image.png" }] },
+      cards: [], processRules: [],
+    } })
+  })
+  await page.getByRole("navigation", { name: "Etapas do projeto" }).getByRole("button", { name: /Exportação/ }).click()
+  await page.getByRole("button", { name: "Baixar primeira carta" }).click()
+  await expect(page.getByRole("alert")).toContainText(/CORS/, { timeout: 20000 })
+  await expect(page.getByRole("button", { name: "Baixar primeira carta" })).toBeEnabled()
+})
