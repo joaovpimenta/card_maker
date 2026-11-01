@@ -5,15 +5,24 @@ import type { CardTemplate } from "../models/Template"
 import { useEditorStore } from "../store/editorStore"
 import { resolveImage, resolveText } from "../utils/jsonBinding"
 import useImage from "use-image"
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import SelectionBox from "./SelectionBox"
 import { Grid } from "./Grid"
+import { useCanvasViewport } from "./CanvasViewportContext"
+import { ensureTemplateFonts } from "../utils/googleFonts"
 
 export const SAFE_MARGIN = 24
 const DRAG_SNAP_THRESHOLD = 5
 interface CanvasStageProps {
     cardIndex?: number
 }
+
+function boundDimension(cardData: Record<string, unknown>, key: string | undefined, fallback: number) {
+    if (!key) return fallback
+    const bound = Number.parseInt(String(cardData[key] ?? ""), 10)
+    return Number.isFinite(bound) && bound > 0 ? bound : fallback
+}
+
 
 function handleDragMoveWrap(el: { id: string; x: number; y: number }, template: CardTemplate) {
     return function handleDragMove(e: KonvaEventObject<DragEvent>) {
@@ -50,28 +59,21 @@ function RenderTextElement({
     setSelectedElement: (id?: string) => void
     template: CardTemplate
 }) {
-    let width = el.maxWidth ?? el.width
-    if(el.width_bind) {
-        const boundWidth = parseInt(cardData[el.width_bind] as string);
-        width =  boundWidth ?? el.width;
-    } 
-    let height = el.maxHeight ?? el.height
-    if(el.height_bind) {
-        const boundHeight = parseInt(cardData[el.height_bind] as string);
-        height =  boundHeight ?? el.height;
-    }
+    const panMode = useCanvasViewport()?.panMode ?? false
+    const width = boundDimension(cardData, el.width_bind, el.maxWidth ?? el.width)
+    const height = boundDimension(cardData, el.height_bind, el.maxHeight ?? el.height)
 
     return (
         <Group
             x={el.x}
             y={el.y}
-            draggable
+            draggable={!panMode}
             onDragMove={handleDragMoveWrap(el, template)}
             onDragEnd={(e) =>
                 updateElement(el.id, { x: e.target.x(), y: e.target.y() })
             }
-            onClick={() => setSelectedElement(el.id)}
-            onTap={() => setSelectedElement(el.id)}
+            onClick={() => { if (!panMode) setSelectedElement(el.id) }}
+            onTap={() => { if (!panMode) setSelectedElement(el.id) }}
         >
             {/* Selection box */}
             {isSelected && (
@@ -108,19 +110,12 @@ function RenderImageElement({
     setSelectedElement: (id?: string) => void
     template: CardTemplate
 }) {
+    const panMode = useCanvasViewport()?.panMode ?? false
     const [img] = useImage(resolveImage(el, cardData))
     if (!img) return null
 
-    let width = el.width;
-    if(el.width_bind) {
-        const boundWidth = parseInt(cardData[el.width_bind] as string);
-        width =  boundWidth ?? el.width;
-    }
-    let height = el.height;
-    if(el.height_bind) {
-        const boundHeight = parseInt(cardData[el.height_bind] as string);
-        height =  boundHeight ?? el.height;
-    }
+    const width = boundDimension(cardData, el.width_bind, el.width)
+    const height = boundDimension(cardData, el.height_bind, el.height)
 
     const imgRatio = img.width / img.height
     const boxRatio = width / height
@@ -144,13 +139,13 @@ function RenderImageElement({
         <Group
             x={el.x}
             y={el.y}
-            draggable
+            draggable={!panMode}
             onDragMove={handleDragMoveWrap(el, template)}
             onDragEnd={(e) =>
                 updateElement(el.id, { x: e.target.x(), y: e.target.y() })
             }
-            onClick={() => setSelectedElement(el.id)}
-            onTap={() => setSelectedElement(el.id)}
+            onClick={() => { if (!panMode) setSelectedElement(el.id) }}
+            onTap={() => { if (!panMode) setSelectedElement(el.id) }}
         >
             {/* Selection box */}
             {isSelected && (
@@ -187,28 +182,21 @@ function RenderStaticTextElement({
     setSelectedElement: (id?: string) => void
     template: CardTemplate
 }) {
-    let width = el.maxWidth ?? el.width
-    if(el.width_bind) {
-        const boundWidth = parseInt(cardData[el.width_bind] as string);
-        width =  boundWidth ?? el.width;
-    } 
-    let height = el.maxHeight ?? el.height
-    if(el.height_bind) {
-        const boundHeight = parseInt(cardData[el.height_bind] as string);
-        height =  boundHeight ?? el.height;
-    }
+    const panMode = useCanvasViewport()?.panMode ?? false
+    const width = boundDimension(cardData, el.width_bind, el.maxWidth ?? el.width)
+    const height = boundDimension(cardData, el.height_bind, el.maxHeight ?? el.height)
 
     return (
         <Group
             x={el.x}
             y={el.y}
-            draggable
+            draggable={!panMode}
             onDragMove={handleDragMoveWrap(el, template)}
             onDragEnd={(e) =>
                 updateElement(el.id, { x: e.target.x(), y: e.target.y() })
             }
-            onClick={() => setSelectedElement(el.id)}
-            onTap={() => setSelectedElement(el.id)}
+            onClick={() => { if (!panMode) setSelectedElement(el.id) }}
+            onTap={() => { if (!panMode) setSelectedElement(el.id) }}
         >
             {/* Selection border */}
             {isSelected && (
@@ -245,19 +233,12 @@ function RenderStaticImageElement({
     setSelectedElement: (id?: string) => void
     template: CardTemplate
 }) {
+    const panMode = useCanvasViewport()?.panMode ?? false
     const [img] = useImage(el.src)
     if (!img) return null
 
-    let width = el.width;
-    if(el.width_bind) {
-        const boundWidth = parseInt(cardData[el.width_bind] as string);
-        width =  boundWidth ?? el.width;
-    }
-    let height = el.height;
-    if(el.height_bind) {
-        const boundHeight = parseInt(cardData[el.height_bind] as string);
-        height =  boundHeight ?? el.height;
-    }
+    const width = boundDimension(cardData, el.width_bind, el.width)
+    const height = boundDimension(cardData, el.height_bind, el.height)
 
     const imgRatio = img.width / img.height
     const boxRatio = width / height
@@ -281,13 +262,13 @@ function RenderStaticImageElement({
         <Group
             x={el.x}
             y={el.y}
-            draggable
+            draggable={!panMode}
             onDragMove={handleDragMoveWrap(el, template)}
             onDragEnd={(e) =>
                 updateElement(el.id, { x: e.target.x(), y: e.target.y() })
             }
-            onClick={() => setSelectedElement(el.id)}
-            onTap={() => setSelectedElement(el.id)}
+            onClick={() => { if (!panMode) setSelectedElement(el.id) }}
+            onTap={() => { if (!panMode) setSelectedElement(el.id) }}
         >
             {isSelected && (
                 <SelectionBox width={width} height={height} />
@@ -306,6 +287,7 @@ function RenderStaticImageElement({
 }
 
 export default function CanvasStage({ cardIndex = 0 }: CanvasStageProps) {
+    const viewport = useCanvasViewport()
     const setSelectedElement = useEditorStore((s) => s.setSelectedElement)
     const template = useEditorStore((s) => s.template)
     const updateElement = useEditorStore((s) => s.updateElement)
@@ -313,6 +295,17 @@ export default function CanvasStage({ cardIndex = 0 }: CanvasStageProps) {
     const sampleCards = useEditorStore((s) => s.sampleCards)
 
     const selectedElementId = useEditorStore((s) => s.selectedElementId)
+    const textFonts = useMemo(() => [...new Set(template.elements.flatMap(el => el.type === "text" || el.type === "staticText" ? [`${el.fontSize}px "${el.fontFamily}"`] : []))], [template.elements])
+    const fontTemplate = useMemo(() => ({ width: template.width, height: template.height, elements: [], customFonts: template.customFonts }), [template.width, template.height, template.customFonts])
+    const fontSignature = JSON.stringify([fontTemplate.customFonts, textFonts])
+    const [readyFontSignature, setReadyFontSignature] = useState("")
+    useEffect(() => {
+        let current = true
+        void ensureTemplateFonts(fontTemplate).then(() => Promise.all(textFonts.map(font => document.fonts.load(font)))).catch(error => {
+            window.dispatchEvent(new CustomEvent("cardmaker:font-error", { detail: error instanceof Error ? error.message : "Não foi possível carregar uma fonte do cartão." }))
+        }).finally(() => { if (current) setReadyFontSignature(fontSignature) })
+        return () => { current = false }
+    }, [fontTemplate, textFonts, fontSignature])
 
     useEffect(() => {
         if (!selectedElementId && template.elements.length > 0) {
@@ -328,7 +321,9 @@ export default function CanvasStage({ cardIndex = 0 }: CanvasStageProps) {
         () => sampleCards[cardIndex] || {},
         [sampleCards, cardIndex]
     )
+    if (readyFontSignature !== fontSignature) return null
     return (
+        <div data-testid="canvas-card" style={{ position: "absolute", left: 0, top: 0, transformOrigin: "top left", transform: `translate(${viewport?.x ?? 0}px, ${viewport?.y ?? 0}px) scale(${viewport?.scale ?? 1})` }}>
         <Stage width={template.width} height={template.height}>
             <Layer>
                 <Grid width={template.width} height={template.height} step={5} color="#000" />
@@ -369,5 +364,6 @@ export default function CanvasStage({ cardIndex = 0 }: CanvasStageProps) {
                 />
             </Layer>
         </Stage>
+        </div>
     )
 }

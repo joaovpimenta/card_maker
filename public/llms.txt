@@ -1,0 +1,18 @@
+# Card Maker
+
+> Card Maker is a static, browser-based editor for board-game card prototypes. Projects are imported, edited, and exported in the user's browser.
+
+The hosted app is available at https://joaovpimenta.github.io/card_maker/.
+
+## Agent documentation
+
+- [Agent API and capabilities](agents/README.md): browser automation, lifecycle, and constraints
+- [Capabilities summary](agents/capabilities.md): supported operations and readiness
+- [Machine-readable capabilities catalog](agents/capabilities.json): browser API methods, commands, results, and limits
+- [Project JSON Schema](agents/project.schema.json): machine-readable version 1 project contract
+- [Sample project](agents/sample-project.json): importable example with template and cards
+- [Sample card data](agents/sample-data.json): a small standalone dataset
+
+## Important deployment detail
+
+The site is hosted under `/card_maker/`. Resolve documentation links relative to the current document or use the full hosted URL. This is a static website; it does not expose a remote MCP service or server-side project API. Browser automation must run against the loaded website.

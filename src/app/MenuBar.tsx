@@ -1,192 +1,75 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useEditorStore } from "../store/editorStore"
-import { renderCardToDataURL } from "../utils/renderCardsToCanvas"
-import JSZip from "jszip"
-import { saveAs } from "file-saver"
+import { executeCommand, getProject } from "../project/commands"
+import { saveJson } from "../utils/exportCards"
 import styles from "./MenuBar.module.css"
 import { CardSizeModal } from "../modal/CardSizeModal"
 import { AddFontModal } from "../modal/AddFontModal"
 
-const KOFI_URL = import.meta.env.VITE_STATIC_KOFI_URL;
-console.log("KOFI_URL:", KOFI_URL);
+function closeMenus(root: HTMLElement | null) {
+  root?.querySelectorAll<HTMLDetailsElement>("details[open]").forEach(menu => {
+    if (menu.contains(document.activeElement)) menu.querySelector("summary")?.focus()
+    menu.removeAttribute("open")
+  })
+}
+
 export default function MenuBar() {
-    const exportTemplate = useEditorStore((s) => s.exportTemplate)
-    const importTemplate = useEditorStore((s) => s.importTemplate)
-    const template = useEditorStore((s) => s.template)
-    const sampleCards = useEditorStore((s) => s.sampleCards)
-    const setSampleCards = useEditorStore((s) => s.setSampleCards)
-    const setCardSize = useEditorStore((s) => s.setCardSize)
-    const [showCardSizeModal, setShowCardSizeModal] = useState(false)
-    const [showAddFontModal, setShowAddFontModal] = useState(false)
-    const toggleGuides = useEditorStore((s) => s.toggleGuides)
-    const toggleGrid = useEditorStore((s) => s.toggleGrid)
-    const togglePreview = useEditorStore((s) => s.togglePreview)
-    const clearHistory = useEditorStore((s) => s.clearHistory)
-    const undo = useEditorStore((s) => s.undo)
-    const redo = useEditorStore((s) => s.redo)
-    const historySize = useEditorStore((s) => s.history.length)
-    const historyIndex = useEditorStore((s) => s.historyIndex)
-
-    const showGuides = useEditorStore((s) => s.showGuides)
-    const showGrid = useEditorStore((s) => s.showGrid)
-    const showPreview = useEditorStore((s) => s.showPreview)
-
-    const templateWidth = useEditorStore((s) => s.template.width)
-    const templateHeight = useEditorStore((s) => s.template.height)
-
-    const [importError, setImportError] = useState("")
-
-    const cardSizes = [
-        { label: "600x825 Mini Deck", width: 600, height: 825 },
-        { label: "750x1125 Bridge Deck/Us Game Deck", width: 750, height: 1125 },
-        { label: "825x1125 Euro Poker Deck", width: 825, height: 1125 },
-        { label: "900x1500 Tarot Deck", width: 900, height: 1500 },
-    ]
-
-    const handleJsonUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (!file) return
-        const reader = new FileReader()
-        reader.onload = () => {
-            try {
-                let data: Record<string, string>[] = [];
-                if (file.name.endsWith(".json")) {
-                    data = JSON.parse(reader.result as string)
-                    if (!Array.isArray(data))
-                        throw new Error("JSON must be an array")
-                } else if (file.name.endsWith(".csv")) {
-                    const text = reader.result as string
-                    const lines = text.split("\n").filter(line => line.trim() !== "")
-                    const headers = lines[0].split(",").map(h => h.trim())
-                    data = lines.slice(1).map(line => {
-                        const values = line.split(",").map(v => v.trim())
-                        const record: Record<string, string> = {}
-                        headers.forEach((header, index) => {
-                            record[header] = values[index] || ""
-                        })
-                        return record
-                    })
-                }
-                setSampleCards(data)
-                setImportError("")
-            }
-            catch (err) {
-                console.log("Invalid JSON file", err)
-                setImportError("Invalid JSON file")
-            }
-        }
-        reader.readAsText(file)
+  const [dialog, setDialog] = useState<"size" | "font" | null>(null)
+  const [error, setError] = useState("")
+  const fileInput = useRef<HTMLInputElement>(null)
+  const header = useRef<HTMLElement>(null)
+  const state = useEditorStore()
+  useEffect(() => {
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && !header.current?.contains(event.target)) closeMenus(header.current)
     }
-
-    const exportCards = async () => {
-        const zip = new JSZip()
-        for (let i = 0; i < sampleCards.length; i++) {
-            const dataURL = await renderCardToDataURL(template, sampleCards[i])
-            const base64 = dataURL.split(",")[1]
-            zip.file(`card_${i + 1}.png`, base64, { base64: true })
-        }
-        const blob = await zip.generateAsync({ type: "blob" })
-        saveAs(blob, "cards.zip")
-    }
-
-    const newProject = () => {
-        const emptyTemplate = {
-            width: 750,
-            height: 1125,
-            elements: [],
-            customFonts: [],
-        }
-
-        clearHistory()
-        importTemplate(JSON.stringify({ template: emptyTemplate, processRules: [] }))
-        setSampleCards([])
-    }
-
-    return (
-        <>
-            <div className={styles.menuBar}>
-                <div className={styles.menu}>
-                    <span className={styles.menuTitle}>File</span>
-                    <div className={styles.dropdown}>
-                        <button onClick={newProject}>New project</button>
-                        <hr />
-                        <label>
-                            Import Card
-                            <input type="file" accept=".json" onChange={handleJsonUpload} className={styles.hiddenInput} />
-                        </label>
-                        <hr />
-                        <label>Import Template
-                            <input type="file" accept=".json" onChange={(e) => {
-                                const file = e.target.files?.[0]
-                                if (!file) return
-                                const reader = new FileReader()
-                                reader.onload = () => importTemplate(reader.result as string)
-                                reader.readAsText(file)
-                            }} className={styles.hiddenInput} />
-                        </label>
-                        <button onClick={() => {
-                            const json = exportTemplate()
-                            const blob = new Blob([json], { type: "application/json" })
-                            const url = URL.createObjectURL(blob)
-                            const a = document.createElement("a")
-                            a.href = url
-                            a.download = "template.json"
-                            a.click()
-                            URL.revokeObjectURL(url)
-                        }}>Export Template</button>
-                        <hr />
-                        <button onClick={exportCards}>Export Cards (PNG)</button>
-                        {importError && <span className={styles.error}>{importError}</span>}
-                    </div>
-                </div>
-                <div className={styles.menu}>
-                    <span className={styles.menuTitle}>Edit</span>
-                    <div className={styles.dropdown}>
-                        <button onClick={() => undo()} disabled={historyIndex <= 0}>Undo</button>
-                        <button onClick={() => redo()} disabled={historyIndex >= historySize - 1}>Redo</button>
-                        <hr />
-                        <button onClick={() => setShowAddFontModal(true)}>Add Font</button>
-                        <hr />
-                        <div style={{ display: "block", marginTop: 8 }}>
-                            <div style={{ fontWeight: 500, marginBottom: 4 }}>Card Size:</div>
-                            {cardSizes.map((cs) => {
-                                const selected = templateWidth === cs.width && templateHeight === cs.height
-                                return (
-                                    <button
-                                        key={cs.label}
-                                        style={{
-                                            display: "block",
-                                            width: "100%",
-                                            textAlign: "left",
-                                            background: selected ? "#e0e0e0" : undefined,
-                                            fontWeight: selected ? "bold" : undefined,
-                                        }}
-                                        onClick={() => setCardSize(cs.width, cs.height)}
-                                    >
-                                        {cs.label}
-                                    </button>
-                                )
-                            })}
-                        </div>
-                        <button onClick={() => setShowCardSizeModal(true)}>Custom Card Size</button>
-                    </div>
-                </div>
-                <div className={styles.menu}>
-                    <span className={styles.menuTitle}>View</span>
-                    <div className={styles.dropdown}>
-                        <button onClick={toggleGuides}><input type="checkbox" checked={showGuides} readOnly /> Toggle Guides </button>
-                        <button onClick={toggleGrid}><input type="checkbox" checked={showGrid} readOnly /> Toggle Grid </button>
-                        <button onClick={togglePreview}><input type="checkbox" checked={showPreview} readOnly /> Toggle Preview </button>
-                    </div>
-                </div>
-                { KOFI_URL &&
-                <a href={KOFI_URL} target='_blank'>
-                    <img style={{ border: "0px", height: "24px", verticalAlign: "middle" }} src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' alt='Buy Me a Coffee at ko-fi.com' />
-                </a>
-                }
-            </div>
-            {showCardSizeModal && <CardSizeModal onClose={() => setShowCardSizeModal(false)} />}
-            {showAddFontModal && <AddFontModal onClose={() => setShowAddFontModal(false)} />}
-        </>
-    )
+    document.addEventListener("pointerdown", onPointerDown)
+    return () => document.removeEventListener("pointerdown", onPointerDown)
+  }, [])
+  const run = async (command: Parameters<typeof executeCommand>[0]) => {
+    const result = await executeCommand(command)
+    setError(result.ok ? "" : result.errors.map(e => e.message).join("; "))
+    if (result.ok) closeMenus(header.current)
+  }
+  return <header ref={header} className={styles.menuBar}>
+    <a className={styles.brand} href="#" aria-label="Card Maker">Card Maker <small>estúdio de cartas</small></a>
+    <nav className={styles.actions} aria-label="Ações do projeto" onKeyDown={event => {
+      if (event.key === "Escape") closeMenus(header.current)
+    }}>
+      <details className={styles.menu}>
+        <summary>Projeto</summary>
+        <div className={styles.dropdown}>
+          <button onClick={() => {
+            if ((state.template.elements.length || state.sampleCards.length) && !window.confirm("Criar um projeto vazio? Você poderá desfazer esta ação. Para guardar uma cópia, baixe o projeto antes.")) return
+            void run({ type: "newProject" })
+          }}>Novo projeto</button>
+          <button onClick={() => fileInput.current?.click()}>Abrir projeto ou template…</button>
+          <button onClick={() => { saveJson(getProject(), "projeto.cardmaker.json"); closeMenus(header.current) }}>Baixar projeto completo</button>
+          <p>Inclui design, dados e regras. O salvamento automático fica apenas neste navegador.</p>
+        </div>
+      </details>
+      <details className={styles.menu}>
+        <summary>Opções</summary>
+        <div className={styles.dropdown}>
+          <button onClick={() => setDialog("size")}>Tamanho da carta…</button>
+          <button onClick={() => setDialog("font")}>Adicionar fonte…</button>
+          <button aria-pressed={state.showGuides} onClick={state.toggleGuides}>{state.showGuides ? "✓ " : ""}Margem de segurança</button>
+          <button aria-pressed={state.showGrid} onClick={state.toggleGrid}>{state.showGrid ? "✓ " : ""}Grade de alinhamento</button>
+          <a href={`${import.meta.env.BASE_URL}agents/README.md`} target="_blank" rel="noreferrer">Como usar com agentes de IA ↗</a>
+        </div>
+      </details>
+      <button aria-label="Desfazer" title="Desfazer (Ctrl/Cmd+Z)" disabled={state.historyIndex <= 0} onClick={() => void run({ type: "undo" })}>↶ <span>Desfazer</span></button>
+      <button aria-label="Refazer" title="Refazer (Ctrl/Cmd+Shift+Z)" disabled={state.historyIndex >= state.history.length - 1} onClick={() => void run({ type: "redo" })}>↷ <span>Refazer</span></button>
+    </nav>
+    <input ref={fileInput} tabIndex={-1} type="file" accept=".json" className={styles.fileInput} aria-label="Abrir projeto ou template" onChange={async event => {
+      const file = event.target.files?.[0]
+      event.target.value = ""
+      if (!file) return
+      try { await run({ type: "importProject", project: await file.text() }) }
+      catch (e) { setError(e instanceof Error ? e.message : "Não foi possível ler o arquivo.") }
+    }} />
+    {error && <p role="alert" className={styles.error}>{error}</p>}
+    {dialog === "size" && <CardSizeModal onClose={() => setDialog(null)} />}
+    {dialog === "font" && <AddFontModal onClose={() => setDialog(null)} />}
+  </header>
 }

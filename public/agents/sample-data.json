@@ -1,0 +1,4 @@
+[
+  { "name": "Sunstone Golem", "description": "A guardian carved from warm desert stone.", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 252 210'%3E%3Crect width='252' height='210' fill='%23f4c95d'/%3E%3Ccircle cx='126' cy='94' r='52' fill='%23c16b3f'/%3E%3C/svg%3E" },
+  { "name": "Mossbound Sage", "description": "A quiet guide who knows every forest path.", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 252 210'%3E%3Crect width='252' height='210' fill='%23b8d8a8'/%3E%3Cpath d='M126 30 180 110 126 183 72 110z' fill='%234f7955'/%3E%3C/svg%3E" }
+]

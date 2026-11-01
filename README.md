@@ -1,159 +1,42 @@
 # Card Maker
 
-This project is a visual editor to design and generate card sets for board game prototyping.
+Card Maker is a visual editor for designing and generating card sets for board game prototypes. Design a template, bind its elements to card data, preview the deck, and export the rendered cards.
 
-It is built around a simple idea:  
-**what you see is what you get**.
+Try the static app at [joaovpimenta.github.io/card_maker](https://joaovpimenta.github.io/card_maker/). It runs in the browser and requires no account or server. Projects are stored in local browser storage; export project JSON to keep a portable copy.
 
-You design a card once, bind it to data, and the system produces a full deck automatically.
+## Quick start
 
-You can test on your own on [dangerblack.github.io/card_maker](https://dangerblack.github.io/card_maker/)
-
-![Base Screenshot](public/screenshot_base.png)
-
----
-
-## What is this for
-
-This tool is designed for:
-
-- Board game designers
-- Tabletop game prototyping
-- Rapid iteration on card layouts
-- Generating printable or digital card decks from structured data
-
-It is not a publishing tool.  
-It is a fast prototyping tool.
-
----
-
-## Core concepts
-
-### 1. Dataset of cards
-
-You start by uploading a JSON/CSV file containing your card data.
-
-Each item in the array represents one card.
-
-Example:
-
-```json
-[
-  { "name": "Fireball", "cost": 3, "type": "Spell" },
-  { "name": "Knight", "cost": 2, "type": "Unit" }
-]
-````
-
-
-```csv
-name,cost,type
-Fireball,3,Spell
-Knight,2,Unit
-````
-
-This dataset becomes the source of truth for all generated cards.
-
----
-
-### 2. Card template editor
-
-You visually design **one card template**.
-
-- Add static text and images
-- Add dynamic text or images bound to JSON/CSV fields
-- Resize, move, align elements directly on the canvas
-- Use guides and grids for precision
-
-The editor is WYSIWYG:
-what you see on screen is exactly what will be rendered.
-
-![Text Example](public/screenshot_text.png)
-
----
-
-### 3. Process rules (optional)
-
-You can define rules to transform your dataset before rendering.
-
-Examples:
-
-- Rename keys
-- Conditionally change values
-- Create derived fields
-
-This allows adapting raw data without modifying the original JSON/CSV.
-
-You can introduce new fields containing an image url.
-```
-If type = "Fire", then icon = "https://it.wikipedia.org/wiki/Fuoco#/media/File:Large_bonfire.jpg"
-```
-
-You can also use base64 encoded image to avoid the remote request.
-```
-If type = "Fire", then icon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8BQz0AEYBxVSF+FABJADveWkH6oAAAAAElFTkSuQmCC"
-```
-
----
-
-### 4. Preview mode
-
-You can switch to a read only preview mode that displays **all cards in a grid**.
-
-- No interaction
-- No editing
-- Just visual validation of the full deck
-
-This is useful to quickly spot layout issues or inconsistencies across cards.
-
-![Panoramic View](public/screenshot_panoramic_view.png)
-
----
-
-### 5. Export
-
-You can export:
-
-- The template as JSON
-- The full card deck as PNG images
-- A zip file containing all rendered cards
-
-This makes it easy to import the results into printing tools or tabletop simulators.
-
-### 6. History and storage
-
-The editor state is stored locally in the browser, so your work is preserved between sessions.
-It's always suggest to export the template from time to time, but with the history feature you can always rollback a mistake.
-
----
-
-## Typical workflow
-
-1. Create or import a JSON dataset of cards
-2. Design a single card template visually
-3. Bind template elements to data fields
-4. Preview the entire deck
-5. Export cards for playtesting
-
----
-
-## Goal
-
-The goal of this project is speed.
-
-You should be able to go from an idea to a playable prototype in minutes, not days.
-
-If you are designing a board game and need fast card iteration, this tool is for you.
-
----
-
-## Quick Start
-
-```
-npm install
+```sh
+npm ci
 npm run dev
 ```
 
+Import a project JSON or a JSON/CSV data set, edit the card template, preview the cards, then export the template or rendered deck.
+
+## Browser automation and agent docs
+
+The loaded page exposes `window.cardMaker` for browser automation. Await `window.cardMaker.ready`, validate project JSON, then import it or use commands to edit the current project. This is a browser API provided by the static app; there is no remote MCP endpoint, server-side API, or API key.
+
+Start with the [agent guide](public/agents/README.md), [capabilities summary](public/agents/capabilities.md), [machine-readable capabilities catalog](public/agents/capabilities.json), [project JSON Schema](public/agents/project.schema.json), and [sample project](public/agents/sample-project.json). The same documents are published at `/card_maker/agents/`; the discovery index is [`llms.txt`](https://joaovpimenta.github.io/card_maker/llms.txt).
+
+## Deployment
+
+GitHub Actions builds and deploys the static `dist/` directory to GitHub Pages on pushes to `main`. Pull requests run validation without publishing. The app is served under `/card_maker/`, configured through Vite's base path.
+
+For the first deployment, select **Settings → Pages → Build and deployment → Source: GitHub Actions** in this repository. Merge the change into `main`, or run the GitHub Pages workflow manually from `main`.
+
+## Validation
+
+```sh
+npm run lint
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e # serves the production build under /card_maker/
+```
+
+Browser tests cover phone/tablet/desktop layouts, touch selection, pan/zoom, image export, project round trips, font restoration, and recovery from corrupt saved data. Uploaded data, images, and project edits stay in the browser; external image URLs and Google Fonts still require a network connection and appropriate CORS support. Legacy custom JavaScript rules are disabled; declarative rules remain available.
 
 ## License
 
-MIT
+MIT. See [LICENSE.md](LICENSE.md).

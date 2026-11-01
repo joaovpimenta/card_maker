@@ -1,15 +1,21 @@
+import React from "react"
 import { useEditorStore } from "../store/editorStore"
 import { Modal } from "./Modal"
+import { executeCommand } from "../project/commands"
+import type { ProcessRule } from "../models/Template"
 
 export function ProcessRulesModal({ onClose }: { onClose: () => void }) {
     const rules = useEditorStore((s) => s.processRules)
-    const addRule = useEditorStore((s) => s.addProcessRule)
-    const updateRule = useEditorStore((s) => s.updateProcessRule)
-    const removeRule = useEditorStore((s) => s.removeProcessRule)
+    const [error, setError] = React.useState("")
+    const addRule = (rule: ProcessRule) => void executeCommand({type:"addProcessRule",rule}).then(r=>setError(r.ok?"":r.errors.map(e=>e.message).join("; ")))
+    const updateRule = (index:number, updates:Record<string,unknown>) => void executeCommand({type:"updateProcessRule",index,updates}).then(r=>setError(r.ok?"":r.errors.map(e=>e.message).join("; ")))
+    const removeRule = (index:number) => void executeCommand({type:"removeProcessRule",index}).then(r=>setError(r.ok?"":r.errors.map(e=>e.message).join("; ")))
 
     return (
-        <Modal onClose={onClose}>
-            <h2>Process JSON rules</h2>
+        <Modal onClose={onClose} title="Regras de dados">
+            <h2>Regras de dados</h2>
+            <p>Regras simples transformam valores conforme uma comparação. JavaScript personalizado não está disponível.</p>
+            {error && <p role="alert">{error}</p>}
 
             {rules.map((rule, i) => {
 
@@ -27,15 +33,19 @@ export function ProcessRulesModal({ onClose }: { onClose: () => void }) {
                         marginBottom: 10,
                     }}
                 >
-                    <p>If the value contained in the key <b>{rule.key||"<key>"}</b> <b>{rule.comparator}</b> <b>{rule.value||"<value>"}</b>, add a new key named <b>{rule.new_key||"<new_key>"}</b> with the following content <b>{content || "<content>"}</b></p>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 1fr", gap: 8 }}>
+                    <p>Se o valor do campo <b>{rule.key||"<key>"}</b> <b>{rule.comparator}</b> <b>{rule.value||"<value>"}</b>, adicione um campo chamado <b>{rule.new_key||"<new_key>"}</b> com o valor <b>{content || "<content>"}</b></p>
+                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 80px minmax(0,1fr)", gap: 8 }}>
                         <input
-                            placeholder="key"
+                            aria-label={`Campo da regra ${i + 1}`}
+                            style={{ minWidth: 0, width: "100%" }}
+                            placeholder="campo"
                             value={rule.key}
                             onChange={(e) => updateRule(i, { key: e.target.value })}
                         />
 
                         <select
+                            aria-label={`Comparação da regra ${i + 1}`}
+                            style={{ minWidth: 0, width: "100%" }}
                             value={rule.comparator}
                             onChange={(e) =>
                                 updateRule(i, { comparator: e.target.value as "=" | "!=" | "~" | "!~" | ">" | "<" | ">=" | "<=" | "null" | "not null" | "custom"})
@@ -51,11 +61,13 @@ export function ProcessRulesModal({ onClose }: { onClose: () => void }) {
                             <option value="<=">&lt;=</option>
                             <option value="null">null</option>
                             <option value="not null">not null</option>
-                            <option value="custom">custom</option>
+                            {rule.comparator === "custom" && <option value="custom" disabled>JavaScript desativado</option>}
                         </select>
 
                         <input
-                            placeholder="value"
+                            aria-label={`Valor da regra ${i + 1}`}
+                            style={{ minWidth: 0, width: "100%" }}
+                            placeholder="valor para comparar"
                             value={rule.value}
                             onChange={(e) => updateRule(i, { value: e.target.value })}
                         />
@@ -63,26 +75,28 @@ export function ProcessRulesModal({ onClose }: { onClose: () => void }) {
 
                     <div style={{ marginTop: 8 }}>
                         <input
-                            placeholder="new_key"
+                            aria-label={`Campo de destino da regra ${i + 1}`}
+                            placeholder="nome do novo campo"
                             value={rule.new_key}
                             onChange={(e) => updateRule(i, { new_key: e.target.value })}
                             style={{ width: "100%", marginBottom: 6 }}
                         />
 
-                        <textarea
-                            placeholder="content"
+                        {rule.comparator === "custom" ? <p role="alert">Esta regra legada contém JavaScript e foi desativada. Remova-a para continuar.</p> : <textarea
+                            aria-label={`Conteúdo da regra ${i + 1}`}
+                            placeholder="conteúdo a definir"
                             value={rule.content}
                             onChange={(e) => updateRule(i, { content: e.target.value })}
                             rows={3}
                             style={{ width: "100%" }}
-                        />
+                        />}
                     </div>
 
                     <button
                         style={{ marginTop: 6, color: "red" }}
                         onClick={() => removeRule(i)}
                     >
-                        Remove rule
+                        Remover regra
                     </button>
                 </div>
             )})}
@@ -98,12 +112,13 @@ export function ProcessRulesModal({ onClose }: { onClose: () => void }) {
                     })
                 }
             >
-                + Add rule
+                + Adicionar regra
             </button>
 
             <div style={{ marginTop: 16, textAlign: "right" }}>
-                <button onClick={onClose}>Close</button>
+                <button onClick={onClose}>Fechar</button>
             </div>
         </Modal>
     )
 }
+
