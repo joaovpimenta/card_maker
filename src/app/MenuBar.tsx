@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useEditorStore } from "../store/editorStore"
 import { executeCommand, getProject } from "../project/commands"
 import { saveJson } from "../utils/exportCards"
@@ -6,19 +6,35 @@ import styles from "./MenuBar.module.css"
 import { CardSizeModal } from "../modal/CardSizeModal"
 import { AddFontModal } from "../modal/AddFontModal"
 
+function closeMenus(root: HTMLElement | null) {
+  root?.querySelectorAll<HTMLDetailsElement>("details[open]").forEach(menu => {
+    if (menu.contains(document.activeElement)) menu.querySelector("summary")?.focus()
+    menu.removeAttribute("open")
+  })
+}
+
 export default function MenuBar() {
   const [dialog, setDialog] = useState<"size" | "font" | null>(null)
   const [error, setError] = useState("")
   const fileInput = useRef<HTMLInputElement>(null)
+  const header = useRef<HTMLElement>(null)
   const state = useEditorStore()
+  useEffect(() => {
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && !header.current?.contains(event.target)) closeMenus(header.current)
+    }
+    document.addEventListener("pointerdown", onPointerDown)
+    return () => document.removeEventListener("pointerdown", onPointerDown)
+  }, [])
   const run = async (command: Parameters<typeof executeCommand>[0]) => {
     const result = await executeCommand(command)
     setError(result.ok ? "" : result.errors.map(e => e.message).join("; "))
+    if (result.ok) closeMenus(header.current)
   }
-  return <header className={styles.menuBar}>
+  return <header ref={header} className={styles.menuBar}>
     <a className={styles.brand} href="#" aria-label="Card Maker">Card Maker <small>estúdio de cartas</small></a>
     <nav className={styles.actions} aria-label="Ações do projeto" onKeyDown={event => {
-      if (event.key === "Escape") event.currentTarget.querySelectorAll("details[open]").forEach(d => d.removeAttribute("open"))
+      if (event.key === "Escape") closeMenus(header.current)
     }}>
       <details className={styles.menu}>
         <summary>Projeto</summary>
@@ -28,7 +44,7 @@ export default function MenuBar() {
             void run({ type: "newProject" })
           }}>Novo projeto</button>
           <button onClick={() => fileInput.current?.click()}>Abrir projeto ou template…</button>
-          <button onClick={() => saveJson(getProject(), "projeto.cardmaker.json")}>Baixar projeto completo</button>
+          <button onClick={() => { saveJson(getProject(), "projeto.cardmaker.json"); closeMenus(header.current) }}>Baixar projeto completo</button>
           <p>Inclui design, dados e regras. O salvamento automático fica apenas neste navegador.</p>
         </div>
       </details>
