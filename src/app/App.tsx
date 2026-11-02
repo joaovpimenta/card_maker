@@ -12,10 +12,72 @@ import { executeCommand } from "../project/commands"
 import { editorHydrated } from "../store/editorStore"
 import { reviewProject } from "../utils/projectReview"
 import RuntimeNotices from "./RuntimeNotices"
-import { parseDataset } from "../project/project"
+import { openEditorFile } from "../guided/openFile"
+import GuidedEditor from "../guided/GuidedEditor"
+import { detachGuided } from "../guided/presets"
 
 const stages = ["Dados", "Design", "Revisão", "Exportação"] as const
 export default function App() {
+  const template = useEditorStore((s) => s.template)
+  const cards = useEditorStore((s) => s.sampleCards)
+  const hydration = useEditorStore((s) => s.hydrationStatus)
+  const [advanced, setAdvanced] = useState(false)
+  const [choosing, setChoosing] = useState(false)
+  const [initialFile, setInitialFile] = useState<File | undefined>()
+  useEffect(() => {
+    const open = (e: Event) => {
+      setInitialFile((e as CustomEvent<File>).detail)
+      setAdvanced(false)
+    }
+    window.addEventListener("card-maker-open-file", open)
+    return () => window.removeEventListener("card-maker-open-file", open)
+  }, [])
+  if (hydration === "loading")
+    return <p role="status">Carregando projeto salvo…</p>
+  const guided =
+    !advanced &&
+    (template.guided ||
+      (!template.elements.length && !cards.length) ||
+      initialFile ||
+      choosing)
+  return guided ? (
+    <GuidedEditor
+      initialFile={initialFile}
+      onApplied={() => {
+        setInitialFile(undefined)
+        setChoosing(false)
+      }}
+      onAdvanced={() => {
+        if (template.guided) {
+          const current = useEditorStore.getState()
+          const plain = detachGuided(current.template, current.sampleCards)
+          current.replaceProject({
+            template: plain,
+            cards: current.originalSampleCards,
+            processRules: current.processRules
+          })
+        }
+        setInitialFile(undefined)
+        setChoosing(false)
+        setAdvanced(true)
+      }}
+    />
+  ) : (
+    <>
+      <button
+        onClick={() => {
+          setAdvanced(false)
+          setInitialFile(undefined)
+          setChoosing(true)
+        }}
+      >
+        Criar com um modelo
+      </button>
+      <LegacyEditor />
+    </>
+  )
+}
+function LegacyEditor() {
   const sampleCards = useEditorStore(s => s.sampleCards)
   const elements = useEditorStore(s => s.template.elements)
   const [cardIndex, setCardIndex] = useState(0)
@@ -98,15 +160,8 @@ function DatasetTable({ onContinue }: { onContinue: () => void }) {
     if (!file) return
     if (cards.length && !window.confirm("Substituir os dados atuais pelo arquivo selecionado?")) return
     try {
-      let rows: Record<string, string>[]
-      const content = await file.text()
-      if (file.name.toLowerCase().endsWith(".json")) {
-        const parsed: unknown = JSON.parse(content)
-        if (!Array.isArray(parsed)) throw new Error("O JSON precisa conter uma lista de registros.")
-        rows = parsed
-      } else rows = parseDataset(content, file.name)
-      const result = await executeCommand({ type: "setDataset", cards: rows })
-      setError(result.ok ? "" : result.errors.map(item => item.message).join("; "))
+      await openEditorFile(file)
+      setError("")
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível ler o arquivo.") }
   }
   const loadExample = async () => {

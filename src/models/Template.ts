@@ -5,6 +5,7 @@ export interface CardTemplate {
   height: number
   elements: CardElement[]
   customFonts: string[]
+  guided?: { id: "fantasy" | "character" | "education" | "product"; version: 1; color: string }
 }
 
 export type ProcessRule = {

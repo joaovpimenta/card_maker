@@ -8,14 +8,16 @@ export function setPersistenceEnabled(enabled: boolean) {
 
 function reportStorageError(error: unknown) {
   if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("card-maker-storage-error", {
-      detail: error instanceof Error ? error.message : String(error),
-    }))
+    window.dispatchEvent(
+      new CustomEvent("card-maker-storage-error", {
+        detail: error instanceof Error ? error.message : String(error)
+      })
+    )
   }
 }
 
 export const indexedDbStorage: StateStorage = {
-  getItem: async name => {
+  getItem: async (name) => {
     try {
       const value = await get(name)
       return value ? JSON.stringify(value) : null
@@ -27,7 +29,11 @@ export const indexedDbStorage: StateStorage = {
   setItem: async (name, value) => {
     if (!persistenceEnabled) return
     try {
+      if (typeof window !== "undefined")
+        window.dispatchEvent(new Event("card-maker-storage-saving"))
       await set(name, JSON.parse(value))
+      if (typeof window !== "undefined")
+        window.dispatchEvent(new Event("card-maker-storage-saved"))
     } catch (error) {
       persistenceEnabled = false
       reportStorageError(error)
@@ -40,6 +46,5 @@ export const indexedDbStorage: StateStorage = {
       persistenceEnabled = false
       reportStorageError(error)
     }
-  },
+  }
 }
-

@@ -3,6 +3,7 @@ import type { CardTemplate, ProcessRule } from "../models/Template"
 import type { CardElement } from "../models/Element"
 import { persist, createJSONStorage } from "zustand/middleware"
 import { indexedDbStorage, setPersistenceEnabled } from "./indexedDbStorage"
+import { detachGuided } from "../guided/presets"
 import { parseProject } from "../project/project"
 
 interface EditorState {
@@ -83,7 +84,8 @@ export const useEditorStore = create<EditorState>()(
 
         addElement: (el) =>
             set((state) => {
-                const validated = validateState({...state.template,elements:[...state.template.elements,el]},state.originalSampleCards,state.processRules)
+                const editable=detachGuided(state.template,state.sampleCards)
+                const validated = validateState({...editable,elements:[...editable.elements,el]},state.originalSampleCards,state.processRules)
                 const newTemplate = {
                     ...validated.template,
                 }
@@ -100,7 +102,8 @@ export const useEditorStore = create<EditorState>()(
 
         deleteElement: (id) =>
             set((state) => {
-                const validated = validateState({...state.template,elements:state.template.elements.filter(el=>el.id!==id)},state.originalSampleCards,state.processRules)
+                const editable=detachGuided(state.template,state.sampleCards)
+                const validated = validateState({...editable,elements:editable.elements.filter(el=>el.id!==id)},state.originalSampleCards,state.processRules)
                 const newTemplate = {
                     ...validated.template,
                 }
@@ -122,7 +125,9 @@ export const useEditorStore = create<EditorState>()(
                 if (!existing) throw new Error(`Element not found: ${id}`)
                 if (updates.id !== undefined && updates.id !== id) throw new Error("Element ids are immutable")
                 if (updates.type !== undefined && updates.type !== existing.type) throw new Error("Element types are immutable")
-                const validated = validateState({...state.template,elements:state.template.elements.map(el=>el.id===id?{...el,...updates} as CardElement:el)},state.originalSampleCards,state.processRules)
+                const isCrop=id==="preset-image"&&Object.keys(updates).every(key=>["fit","cropX","cropY","zoom"].includes(key))
+                const editable=isCrop?state.template:detachGuided(state.template,state.sampleCards)
+                const validated = validateState({...editable,elements:editable.elements.map(el=>el.id===id?{...el,...updates} as CardElement:el)},state.originalSampleCards,state.processRules)
                 const newTemplate = {
                     ...validated.template,
                 }
@@ -180,7 +185,7 @@ export const useEditorStore = create<EditorState>()(
 
         setCardSize: (width, height) => set(state => {
             const template = validateState(
-                { ...state.template, width, height },
+                { ...detachGuided(state.template,state.sampleCards), width, height },
                 state.originalSampleCards,
                 state.processRules,
             ).template

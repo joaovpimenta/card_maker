@@ -1,11 +1,10 @@
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo } from "react"
 import { v4 as uuidv4 } from "uuid"
 import { useEditorStore } from "../store/editorStore"
 import styles from "./Toolbar.module.css"
 import { ProcessRulesModal } from "../modal/ProcessRuleModal"
 import { SAFE_MARGIN } from "../canvas/CanvasStage"
-import { executeCommand } from "../project/commands"
-import { parseDataset } from "../project/project"
+import { openEditorFile } from "../guided/openFile"
 
 export default function Toolbar() {
   const addElement = useEditorStore((s) => s.addElement)
@@ -22,10 +21,7 @@ export default function Toolbar() {
   const [showRules, setShowRules] = useState(false)
   const [datasetError, setDatasetError] = useState("")
 
-  useEffect(() => {
-    if (jsonFields.length === 0) return
-    if (!selectedField || !jsonFields.includes(selectedField)) setSelectedField(jsonFields[0])
-  }, [jsonFields, selectedField])
+  const activeField=jsonFields.includes(selectedField)?selectedField:jsonFields[0]??""
 
   const handleStaticImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -51,23 +47,8 @@ export default function Toolbar() {
     if (!file)
       return
     if (sampleCards.length && !window.confirm("Substituir os dados atuais pelo arquivo selecionado?")) { e.target.value = ""; return }
-    const reader = new FileReader()
-    reader.onload = () => {
-      try {
-        let data: Record<string, string>[] = [];
-        if (file.name.toLowerCase().endsWith(".json")) {
-          data = JSON.parse(reader.result as string)
-          if (!Array.isArray(data)) throw new Error("O JSON precisa conter uma lista de registros.")
-        } else if (/\.(csv|tsv)$/i.test(file.name)) {
-          data = parseDataset(reader.result as string, file.name)
-        } else throw new Error("Use um arquivo CSV, TSV ou JSON.")
-        void executeCommand({ type: "setDataset", cards: data }).then(result => setDatasetError(result.ok ? "" : result.errors.map(item => item.message).join("; ")))
-      }
-      catch (err) {
-        setDatasetError(err instanceof Error ? err.message : "Não foi possível ler o arquivo.")
-      }
-    }
-    reader.readAsText(file)
+    void openEditorFile(file).then(()=>setDatasetError("")).catch(err=>setDatasetError(err instanceof Error?err.message:"Não foi possível abrir o arquivo."))
+    e.target.value = ""
   }
 
   return (
@@ -116,7 +97,7 @@ export default function Toolbar() {
 
       <div>
         <label htmlFor="element-binding">Campo para vincular</label>
-        <select id="element-binding" disabled={!jsonFields.length} value={selectedField} onChange={(e) => setSelectedField(e.target.value)}>
+        <select id="element-binding" disabled={!jsonFields.length} value={activeField} onChange={(e) => setSelectedField(e.target.value)}>
           {jsonFields.map((f) => (
             <option key={f} value={f}>{f}</option>
           ))}
@@ -135,7 +116,7 @@ export default function Toolbar() {
         fontFamily: "Arial",
         color: "black",
         align: "center",
-        bind: selectedField,
+        bind: activeField,
         zIndex: 1
       })} disabled={!jsonFields.length}>Adicionar texto vinculado</button>
 
@@ -146,7 +127,7 @@ export default function Toolbar() {
         y: SAFE_MARGIN + 2,
         width: width / 2,
         height: height / 2,
-        bind: selectedField,
+        bind: activeField,
         zIndex: 1
       })} disabled={!jsonFields.length}>Adicionar imagem vinculada</button>
 

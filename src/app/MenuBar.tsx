@@ -3,6 +3,7 @@ import { useEditorStore } from "../store/editorStore"
 import { executeCommand, getProject } from "../project/commands"
 import { saveJson } from "../utils/exportCards"
 import styles from "./MenuBar.module.css"
+import { openEditorFile } from "../guided/openFile"
 import { CardSizeModal } from "../modal/CardSizeModal"
 import { AddFontModal } from "../modal/AddFontModal"
 
@@ -61,11 +62,11 @@ export default function MenuBar() {
       <button aria-label="Desfazer" title="Desfazer (Ctrl/Cmd+Z)" disabled={state.historyIndex <= 0} onClick={() => void run({ type: "undo" })}>↶ <span>Desfazer</span></button>
       <button aria-label="Refazer" title="Refazer (Ctrl/Cmd+Shift+Z)" disabled={state.historyIndex >= state.history.length - 1} onClick={() => void run({ type: "redo" })}>↷ <span>Refazer</span></button>
     </nav>
-    <input ref={fileInput} tabIndex={-1} type="file" accept=".json" className={styles.fileInput} aria-label="Abrir projeto ou template" onChange={async event => {
+    <input ref={fileInput} tabIndex={-1} type="file" accept=".json,.csv,.tsv" className={styles.fileInput} aria-label="Abrir projeto ou template" onChange={async event => {
       const file = event.target.files?.[0]
       event.target.value = ""
       if (!file) return
-      try { await run({ type: "importProject", project: await file.text() }) }
+      try { await openEditorFile(file); setError(""); closeMenus(header.current) }
       catch (e) { setError(e instanceof Error ? e.message : "Não foi possível ler o arquivo.") }
     }} />
     {error && <p role="alert" className={styles.error}>{error}</p>}

@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises"
 
 async function openSampleDesign(page: Page) {
   await page.goto("./")
+  await page.getByRole("button", {name:"Personalizar layout"}).click()
   await page.getByRole("button", { name: "Usar projeto de exemplo" }).click()
   await page.getByRole("button", { name: /Continuar para o design/ }).click()
   await expect(page.getByTestId("canvas-card")).toBeVisible()
@@ -79,6 +80,7 @@ test("reports a failed image request during export", async ({ page }) => {
     cards: [{}],
     processRules: [],
   }
+  await page.getByRole("button", {name:"Personalizar layout"}).click()
   await page.getByText("Projeto", { exact: true }).click()
   await page.getByLabel("Abrir projeto ou template").setInputFiles({ name: "remote.cardmaker.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(project)) })
   await expect.poll(() => page.evaluate(() => window.cardMaker?.getProject().template.elements[0]?.id)).toBe("remote")

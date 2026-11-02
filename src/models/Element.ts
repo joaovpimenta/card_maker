@@ -12,6 +12,11 @@ export interface BaseElement {
   height: number
   opacity?: number
   zIndex?: number
+  autoFit?: boolean
+  fit?: "contain" | "cover"
+  cropX?: number
+  cropY?: number
+  zoom?: number
 
   x_bind?: string
   y_bind?: string

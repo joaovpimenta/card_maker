@@ -105,6 +105,7 @@ test('corrupt saved data is preserved and reported without blocking recovery', a
 test('a first-time user can load the example, edit properties and open options by keyboard', async ({page}) => {
   await page.setViewportSize({width:360,height:800})
   await page.goto('./')
+  await page.getByRole('button',{name:'Personalizar layout'}).click()
   await page.getByRole('button',{name:'Usar projeto de exemplo'}).click()
   await page.getByRole('button',{name:'Continuar para o design'}).click()
   await expect(page.getByTestId('canvas-card')).toBeVisible()
