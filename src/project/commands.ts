@@ -121,7 +121,7 @@ export async function executeCommand(command: ProjectCommand): Promise<CommandRe
         })
         const updated = project.template.elements.find(element => element.id === command.id)
         if (!updated) throw new Error(`Element not found: ${command.id}`)
-        store.updateElement(command.id, updated)
+        store.updateElement(command.id, command.updates)
         return successful()
       }
       case "deleteElement":
@@ -136,7 +136,16 @@ export async function executeCommand(command: ProjectCommand): Promise<CommandRe
         return successful()
       }
       case "setTemplate": {
-        const project = parseProject({ ...current, template: command.template })
+        const template = { ...command.template }
+        if (
+          current.template.guided &&
+          (JSON.stringify(template.elements) !==
+            JSON.stringify(current.template.elements) ||
+            template.width !== current.template.width ||
+            template.height !== current.template.height)
+        )
+          delete template.guided
+        const project = parseProject({ ...current, template })
         store.replaceProject(project)
         return successful()
       }

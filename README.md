@@ -40,3 +40,25 @@ Browser tests cover phone/tablet/desktop layouts, touch selection, pan/zoom, ima
 ## License
 
 MIT. See [LICENSE.md](LICENSE.md).
+
+## Criar uma carta rapidamente
+
+Escolha um modelo **Fantasia**, **Personagem**, **Educativo** ou **Produto**,
+preencha o formulário e toque em **Baixar carta** para obter um PNG. A prévia
+acompanha as alterações. No celular, **Ver carta** amplia a prévia sem perder
+sua posição no formulário.
+
+Envie uma imagem pela galeria ou câmera; no desktop, também é possível arrastar
+ou colar. **Preencher**, **Mostrar inteira**, zoom e posição ajustam a arte sem
+distorção. As imagens locais são incorporadas ao projeto salvo.
+
+**Abrir arquivo** reconhece projetos completos e tabelas CSV, TSV ou JSON.
+Projetos restauram layout, imagens e dados; tabelas permitem escolher o modelo
+e conferir o mapeamento das colunas. **Salvar projeto** baixa uma cópia editável;
+o salvamento automático fica apenas no dispositivo atual.
+
+Use **Nova carta**, **Duplicar carta** e **Baixar todas** para trabalhar em lote.
+Modelo, cores e enquadramento são compartilhados pelo conjunto; textos e imagens
+pertencem a cada carta. **Personalizar layout** abre o editor livre existente.
+Ao fazer isso, o layout é materializado e deixa de reorganizar os campos
+automaticamente. A ação pode ser desfeita.

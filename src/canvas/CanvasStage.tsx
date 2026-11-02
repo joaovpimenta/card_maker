@@ -5,6 +5,8 @@ import type { CardTemplate } from "../models/Template"
 import { useEditorStore } from "../store/editorStore"
 import { resolveImage, resolveText } from "../utils/jsonBinding"
 import useImage from "use-image"
+import { imageGeometry, fitText } from "../guided/rendering"
+import { placeholder } from "../guided/presets"
 import { useEffect, useMemo, useState } from "react"
 import SelectionBox from "./SelectionBox"
 import { Grid } from "./Grid"
@@ -83,7 +85,7 @@ function RenderTextElement({
             <Text
                 width={width}
                 height={height}
-                fontSize={el.fontSize}
+                fontSize={el.autoFit ? fitText(resolveText(el,cardData),el.fontFamily,el.fontSize,width,height).fontSize : el.fontSize}
                 fontFamily={el.fontFamily}
                 fill={el.color}
                 text={resolveText(el, cardData)}
@@ -111,32 +113,18 @@ function RenderImageElement({
     template: CardTemplate
 }) {
     const panMode = useCanvasViewport()?.panMode ?? false
-    const [img] = useImage(resolveImage(el, cardData))
+    const [img] = useImage(resolveImage(el, cardData) || placeholder, "anonymous")
     if (!img) return null
 
     const width = boundDimension(cardData, el.width_bind, el.width)
     const height = boundDimension(cardData, el.height_bind, el.height)
 
-    const imgRatio = img.width / img.height
-    const boxRatio = width / height
-
-    let drawWidth = width
-    let drawHeight = height
-    let offsetX = 0
-    let offsetY = 0
-
-    if (imgRatio > boxRatio) {
-        drawWidth = width
-        drawHeight = width / imgRatio
-        offsetY = (height - drawHeight) / 2
-    } else {
-        drawHeight = height
-        drawWidth = height * imgRatio
-        offsetX = (width - drawWidth) / 2
-    }
+    const geometry = imageGeometry(el,img.width,img.height,width,height)
+    const {width:drawWidth,height:drawHeight,x:offsetX,y:offsetY}=geometry
 
     return (
         <Group
+            clipX={0} clipY={0} clipWidth={width} clipHeight={height}
             x={el.x}
             y={el.y}
             draggable={!panMode}
@@ -206,7 +194,7 @@ function RenderStaticTextElement({
             <Text
                 width={width}
                 height={height}
-                fontSize={el.fontSize}
+                fontSize={el.autoFit ? fitText(el.text,el.fontFamily,el.fontSize,width,height).fontSize : el.fontSize}
                 fontFamily={el.fontFamily}
                 fill={el.color}
                 text={el.text}
@@ -240,26 +228,11 @@ function RenderStaticImageElement({
     const width = boundDimension(cardData, el.width_bind, el.width)
     const height = boundDimension(cardData, el.height_bind, el.height)
 
-    const imgRatio = img.width / img.height
-    const boxRatio = width / height
-
-    let drawWidth = width
-    let drawHeight = height
-    let offsetX = 0
-    let offsetY = 0
-
-    if (imgRatio > boxRatio) {
-        drawWidth = width
-        drawHeight = width / imgRatio
-        offsetY = (height - drawHeight) / 2
-    } else {
-        drawHeight = height
-        drawWidth = height * imgRatio
-        offsetX = (width - drawWidth) / 2
-    }
+    const {width:drawWidth,height:drawHeight,x:offsetX,y:offsetY}=imageGeometry(el,img.width,img.height,width,height)
 
     return (
         <Group
+            clipX={0} clipY={0} clipWidth={width} clipHeight={height}
             x={el.x}
             y={el.y}
             draggable={!panMode}

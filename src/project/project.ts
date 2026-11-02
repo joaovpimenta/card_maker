@@ -8,6 +8,11 @@ const baseElement = z.object({
   height: z.number().positive().finite(),
   opacity: z.number().min(0).max(1).optional(),
   zIndex: z.number().finite().optional(),
+  autoFit: z.boolean().optional(),
+  fit: z.enum(["contain", "cover"]).optional(),
+  cropX: z.number().min(0).max(1).optional(),
+  cropY: z.number().min(0).max(1).optional(),
+  zoom: z.number().min(1).max(4).optional(),
   x_bind: z.string().optional(),
   y_bind: z.string().optional(),
   width_bind: z.string().optional(),
@@ -47,6 +52,7 @@ export const projectSchema = z.object({
       })
     }),
     customFonts: z.array(z.string()),
+    guided: z.object({id:z.enum(["fantasy","character","education","product"]),version:z.literal(1),color:z.string().regex(/^#[0-9a-fA-F]{6}$/)}).optional(),
   }),
   cards: scalarCards,
   processRules: z.array(z.object({

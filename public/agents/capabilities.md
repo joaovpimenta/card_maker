@@ -55,3 +55,24 @@ Use the command discriminant `type` as shown. Errors have the shape `{ ok: false
 ## Browser limits
 
 The API operates only in the loaded page and local browser storage. It cannot access a user's filesystem except through browser file/download flows, and it has no server persistence. An agent should create JSON that validates against the schema, then import it in the app. Do not describe this interface as MCP or call it remotely.
+
+## Guided presets and image framing
+
+The UI starts with Fantasy, Character, Educational and Product presets. A guided
+project remains a version 1 project and stores optional `template.guided` metadata
+(`id`, `version: 1`, `color`). Save the entire project to restore the guided form,
+embedded image data and framing. Plain templates continue to open in the free editor.
+All file pickers recognize a complete project versus a CSV/TSV/JSON dataset.
+Dataset import lets users choose a preset and review column mappings before applying.
+
+Optional element properties `fit` (`contain` or `cover`), `cropX` / `cropY` (0–1),
+`zoom` (1–4) and `autoFit` (boolean) are shared by preview and PNG export. Legacy
+images default to contain; preset artwork defaults to cover. Crop settings apply
+to the artwork element across the deck. Text fitting stops at a minimum readable
+size and the guided UI warns about remaining overflow.
+
+Structural API edits (adding/deleting elements, moving/restyling them or changing
+card size) materialize a guided template as a free layout, so explicit edits are
+preserved rather than overwritten by preset reflow. Existing command names and
+the ZIP result of `exportCards` are unchanged. The UI can also download an
+individual PNG directly.
